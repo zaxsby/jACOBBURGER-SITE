@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jacob's Burger Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #000000 0%, #2d2d2d 100%);
+        }
+        .burger-icon {
+            transition: all 0.3s ease;
+        }
+        .burger-icon:hover {
+            transform: scale(1.1);
+        }
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 5px;
+            background: #e5e7eb;
+            border-radius: 5px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        .toggle-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        .toggle-btn {
+            padding: 0.5rem 1rem;
+            background-color: #374151;
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .toggle-btn.active {
+            background-color: #ffffff;
+            color: black;
+        }
+        .toggle-btn:first-child {
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
+        }
+        .toggle-btn:last-child {
+            border-top-right-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="gradient-bg text-white min-h-screen font-sans">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-10">
+            <div class="flex items-center">
+                <i class="fas fa-hamburger text-3xl mr-3"></i>
+                <h1 class="text-3xl font-bold">JACOB'S BURGER TRACKER</h1>
+            </div>
+            <div class="text-sm">
+                <span id="current-date" class="font-mono"></span>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="bg-gray-800 rounded-xl p-6 mb-8 shadow-lg">
+            <div class="grid grid-cols-3 gap-4 text-center">
+                <div>
+                    <div class="text-gray-400 mb-1">Today's Calories</div>
+                    <div class="text-2xl font-bold" id="today-calories">0</div>
+                    <div class="text-xs text-gray-500">/ <span id="calorie-goal">2500</span> kcal</div>
+                </div>
+                <div>
+                    <div class="text-gray-400 mb-1">Current Weight</div>
+                    <div class="text-2xl font-bold" id="current-weight">--</div>
+                    <div class="text-xs text-gray-500">lb</div>
+                </div>
+                <div>
+                    <div class="text-gray-400 mb-1">Burgers This Week</div>
+                    <div class="text-2xl font-bold" id="burgers-week">0</div>
+                    <div class="text-xs text-gray-500">/ 7 days</div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="flex justify-between text-xs mb-1">
+                    <span>Calorie Progress</span>
+                    <span id="calorie-percentage">0%</span>
+                </div>
+                <div class="w-full bg-gray-700 rounded-full h-2.5">
+                    <div id="calorie-progress" class="bg-white h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-gray-700 mb-6">
+            <button class="tab-btn py-2 px-4 font-medium border-b-2 border-transparent hover:border-white transition-all active" data-tab="burgers">Burgers</button>
+            <button class="tab-btn py-2 px-4 font-medium border-b-2 border-transparent hover:border-white transition-all" data-tab="weight">Weight</button>
+            <button class="tab-btn py-2 px-4 font-medium border-b-2 border-transparent hover:border-white transition-all" data-tab="exercise">Exercise</button>
+            <button class="tab-btn py-2 px-4 font-medium border-b-2 border-transparent hover:border-white transition-all" data-tab="graphs">Graphs</button>
+        </div>
+
+        <!-- Burgers Tab -->
+        <div id="burgers" class="tab-content active">
+            <div class="bg-gray-800 rounded-xl p-6 mb-6 shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Add Burger</h2>
+                <form id="burger-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-gray-400 mb-1">Burger Name</label>
+                        <input type="text" id="burger-name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-white" placeholder="e.g. Double Cheeseburger" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Calories</label>
+                        <input type="number" id="burger-calories" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-white" placeholder="kcal" required>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors w-full">
+                            <i class="fas fa-plus mr-2"></i> Add Burger
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Today's Burgers</h2>
+                <div id="burger-list" class="space-y-3">
+                    <div class="text-center py-8 text-gray-500" id="no-burgers-message">
+                        <i class="fas fa-hamburger text-4xl mb-3"></i>
+                        <p>No burgers added today</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weight Tab -->
+        <div id="weight" class="tab-content">
+            <div class="bg-gray-800 rounded-xl p-6 mb-6 shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Track Weight</h2>
+                <form id="weight-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-gray-400 mb-1">Weight (lb)</label>
+                        <input type="number" step="0.1" id="weight-input" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-white" placeholder="e.g. 165.5" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Date</label>
+                        <input type="date" id="weight-date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-white" required>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors w-full">
+                            <i class="fas fa-weight-scale mr-2"></i> Record Weight
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Weight History</h2>
+                <div id="weight-history" class="space-y-3">
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-weight-scale text-4xl mb-3"></i>
+                        <p>No weight data recorded</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Exercise Tab -->
+        <div id="exercise" class="tab-content">
+            <div class="bg-gray-800 rounded-xl p-6 mb-6 shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Add Exercise</h2>
+                <form id="exercise-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-gray-400 mb-1">Exercise</label>
+                        <input type="text" id="exercise-name" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-white" placeholder="e.g. Running" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Duration (min)</label>
+                        <input type="number" id="exercise-duration" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-white" placeholder="Minutes" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Calories Burned</label>
+                        <input type="number" id="exercise-calories" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-white" placeholder="kcal" required>
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors w-full">
+                            <i class="fas fa-fire mr-2"></i> Add Exercise
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-gray-800 rounded-xl p-6 shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Today's Exercises</h2>
+                <div id="exercise-list" class="space-y-3">
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-heartbeat text-4xl mb-3"></i>
+                        <p>No exercises recorded today</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphs Tab -->
+        <div id="graphs" class="tab-content">
+            <div class="bg-gray-800 rounded-xl p-6 mb-6 shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Data Visualization</h2>
+                
+                <div class="toggle-container mb-4">
+                    <button class="toggle-btn active" data-graph="weight">Weight</button>
+                    <button class="toggle-btn" data-graph="calories">Calories</button>
+                    <button class="toggle-btn" data-graph="burgers">Burgers</button>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-400 mb-2">Time Period</label>
+                    <select id="time-period" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-white">
+                        <option value="7">Last 7 Days</option>
+                        <option value="14">Last 14 Days</option>
+                        <option value="30">Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="data-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Summary -->
+        <div class="bg-gray-800 rounded-xl p-6 mt-8 shadow-lg">
+            <h2 class="text-xl font-bold mb-4">Weekly Burger Summary</h2>
+            <div class="grid grid-cols-7 gap-2">
+                <div class="text-center">
+                    <div class="text-xs text-gray-400">Mon</div>
+                    <div class="h-24 bg-gray-700 rounded mt-1 flex items-center justify-center burger-day" data-day="0">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-400">Tue</div>
+                    <div class="h-24 bg-gray-700 rounded mt-1 flex items-center justify-center burger-day" data-day="1">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-400">Wed</div>
+                    <div class="h-24 bg-gray-700 rounded mt-1 flex items-center justify-center burger-day" data-day="2">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-400">Thu</div>
+                    <div class="h-24 bg-gray-700 rounded mt-1 flex items-center justify-center burger-day" data-day="3">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-400">Fri</div>
+                    <div class="h-24 bg-gray-700 rounded mt-1 flex items-center justify-center burger-day" data-day="4">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-400">Sat</div>
+                    <div class="h-24 bg-gray-700 rounded mt-1 flex items-center justify-center burger-day" data-day="5">0</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-xs text-gray-400">Sun</div>
+                    <div class="h-24 bg-gray-700 rounded mt-1 flex items-center justify-center burger-day" data-day="6">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set current date
+        const today = new Date();
+        document.getElementById('current-date').textContent = today.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+
+        // Tab switching
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabId = button.getAttribute('data-tab');
+                
+                // Update active tab button
+                tabButtons.forEach(btn => btn.classList.remove('active', 'border-white'));
+                button.classList.add('active', 'border-white');
+                
+                // Show corresponding tab content
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                
+                // If graphs tab is selected, update the chart
+                if (tabId === 'graphs') {
+                    updateChart();
+                }
+            });
+        });
+
+        // Data storage
+        let burgers = JSON.parse(localStorage.getItem('burgers')) || [];
+        let weights = JSON.parse(localStorage.getItem('weights')) || [];
+        let exercises = JSON.parse(localStorage.getItem('exercises')) || [];
+        const calorieGoal = 2500;
+
+        // Chart instance
+        let dataChart = null;
+
+        // Burger form submission
+        document.getElementById('burger-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('burger-name').value;
+            const calories = parseInt(document.getElementById('burger-calories').value);
+            const date = today.toISOString().split('T')[0];
+            
+            const burger = {
+                id: Date.now(),
+                name,
+                calories,
+                date
+            };
+            
+            burgers.push(burger);
+            localStorage.setItem('burgers', JSON.stringify(burgers));
+            
+            this.reset();
+            updateBurgerList();
+            updateStats();
+            updateWeeklySummary();
+        });
+
+        // Weight form submission
+        document.getElementById('weight-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const weight = parseFloat(document.getElementById('weight-input').value);
+            const date = document.getElementById('weight-date').value;
+            
+            const weightEntry = {
+                id: Date.now(),
+                weight,
+                date
+            };
+            
+            weights.push(weightEntry);
+            localStorage.setItem('weights', JSON.stringify(weights));
+            
+            this.reset();
+            document.getElementById('weight-date').value = today.toISOString().split('T')[0];
+            updateWeightHistory();
+            updateStats();
+        });
+
+        // Exercise form submission
+        document.getElementById('exercise-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('exercise-name').value;
+            const duration = parseInt(document.getElementById('exercise-duration').value);
+            const calories = parseInt(document.getElementById('exercise-calories').value);
+            const date = today.toISOString().split('T')[0];
+            
+            const exercise = {
+                id: Date.now(),
+                name,
+                duration,
+                calories,
+                date
+            };
+            
+            exercises.push(exercise);
+            localStorage.setItem('exercises', JSON.stringify(exercises));
+            
+            this.reset();
+            updateExerciseList();
+            updateStats();
+        });
+
+        // Update burger list
+        function updateBurgerList() {
+            const burgerList = document.getElementById('burger-list');
+            const todayBurgers = burgers.filter(burger => burger.date === today.toISOString().split('T')[0]);
+            
+            if (todayBurgers.length === 0) {
+                burgerList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500" id="no-burgers-message">
+                        <i class="fas fa-hamburger text-4xl mb-3"></i>
+                        <p>No burgers added today</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            document.getElementById('no-burgers-message')?.remove();
+            
+            burgerList.innerHTML = todayBurgers.map(burger => `
+                <div class="bg-gray-700 rounded-lg p-4 flex justify-between items-center" data-id="${burger.id}">
+                    <div>
+                        <div class="font-medium">${burger.name}</div>
+                        <div class="text-sm text-gray-400">${burger.calories} kcal</div>
+                    </div>
+                    <button class="delete-burger text-gray-400 hover:text-white" data-id="${burger.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            // Add delete event listeners
+            document.querySelectorAll('.delete-burger').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    burgers = burgers.filter(burger => burger.id !== id);
+                    localStorage.setItem('burgers', JSON.stringify(burgers));
+                    updateBurgerList();
+                    updateStats();
+                    updateWeeklySummary();
+                });
+            });
+        }
+
+        // Update weight history
+        function updateWeightHistory() {
+            const weightHistory = document.getElementById('weight-history');
+            
+            if (weights.length === 0) {
+                weightHistory.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-weight-scale text-4xl mb-3"></i>
+                        <p>No weight data recorded</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort by date (newest first)
+            const sortedWeights = [...weights].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            weightHistory.innerHTML = sortedWeights.map(entry => `
+                <div class="bg-gray-700 rounded-lg p-4 flex justify-between items-center">
+                    <div>
+                        <div class="font-medium">${entry.weight} lb</div>
+                        <div class="text-sm text-gray-400">${new Date(entry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update exercise list
+        function updateExerciseList() {
+            const exerciseList = document.getElementById('exercise-list');
+            const todayExercises = exercises.filter(exercise => exercise.date === today.toISOString().split('T')[0]);
+            
+            if (todayExercises.length === 0) {
+                exerciseList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-heartbeat text-4xl mb-3"></i>
+                        <p>No exercises recorded today</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            exerciseList.innerHTML = todayExercises.map(exercise => `
+                <div class="bg-gray-700 rounded-lg p-4 flex justify-between items-center" data-id="${exercise.id}">
+                    <div>
+                        <div class="font-medium">${exercise.name}</div>
+                        <div class="text-sm text-gray-400">${exercise.duration} min • ${exercise.calories} kcal burned</div>
+                    </div>
+                    <button class="delete-exercise text-gray-400 hover:text-white" data-id="${exercise.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+            
+            // Add delete event listeners
+            document.querySelectorAll('.delete-exercise').forEach(button => {
+                button.addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    exercises = exercises.filter(exercise => exercise.id !== id);
+                    localStorage.setItem('exercises', JSON.stringify(exercises));
+                    updateExerciseList();
+                    updateStats();
+                });
+            });
+        }
+
+        // Update stats
+        function updateStats() {
+            // Today's burgers and calories
+            const todayBurgers = burgers.filter(burger => burger.date === today.toISOString().split('T')[0]);
+            const todayCalories = todayBurgers.reduce((sum, burger) => sum + burger.calories, 0);
+            
+            // Today's exercises
+            const todayExercises = exercises.filter(exercise => exercise.date === today.toISOString().split('T')[0]);
+            const burnedCalories = todayExercises.reduce((sum, exercise) => sum + exercise.calories, 0);
+            
+            // Net calories
+            const netCalories = todayCalories - burnedCalories;
+            const percentage = Math.min(Math.round((netCalories / calorieGoal) * 100), 100);
+            
+            // Update UI
+            document.getElementById('today-calories').textContent = netCalories;
+            document.getElementById('calorie-percentage').textContent = `${percentage}%`;
+            document.getElementById('calorie-progress').style.width = `${percentage}%`;
+            
+            // Burgers this week
+            const weekStart = new Date(today);
+            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            const burgersThisWeek = burgers.filter(burger => {
+                const burgerDate = new Date(burger.date);
+                return burgerDate >= weekStart && burgerDate <= today;
+            }).length;
+            
+            document.getElementById('burgers-week').textContent = burgersThisWeek;
+            
+            // Current weight (most recent entry)
+            if (weights.length > 0) {
+                const sortedWeights = [...weights].sort((a, b) => new Date(b.date) - new Date(a.date));
+                document.getElementById('current-weight').textContent = sortedWeights[0].weight;
+            }
+        }
+
+        // Update weekly summary
+        function updateWeeklySummary() {
+            const weekStart = new Date(today);
+            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            
+            const burgerDays = [0, 0, 0, 0, 0, 0, 0];
+            
+            burgers.forEach(burger => {
+                const burgerDate = new Date(burger.date);
+                if (burgerDate >= weekStart && burgerDate <= today) {
+                    const dayIndex = burgerDate.getDay(); // 0 (Sun) to 6 (Sat)
+                    burgerDays[dayIndex]++;
+                }
+            });
+            
+            document.querySelectorAll('.burger-day').forEach(dayElement => {
+                const dayIndex = parseInt(dayElement.getAttribute('data-day'));
+                const count = burgerDays[dayIndex];
+                
+                dayElement.textContent = count;
+                
+                // Visual indicator based on burger count
+                if (count === 0) {
+                    dayElement.className = 'h-24 bg-gray-700 rounded mt-1 flex items-center justify-center burger-day';
+                } else if (count <= 2) {
+                    dayElement.className = 'h-24 bg-gray-600 rounded mt-1 flex items-center justify-center burger-day';
+                } else if (count <= 4) {
+                    dayElement.className = 'h-24 bg-gray-500 rounded mt-1 flex items-center justify-center burger-day';
+                } else {
+                    dayElement.className = 'h-24 bg-gray-400 rounded mt-1 flex items-center justify-center burger-day';
+                }
+            });
+        }
+
+        // Update chart
+        function updateChart() {
+            const graphType = document.querySelector('.toggle-btn.active').getAttribute('data-graph');
+            const timePeriod = document.getElementById('time-period').value;
+            
+            let labels = [];
+            let data = [];
+            let label = '';
+            let backgroundColor = 'rgba(255, 255, 255, 0.8)';
+            let borderColor = 'rgba(255, 255, 255, 1)';
+            
+            const endDate = new Date();
+            let startDate = new Date();
+            
+            if (timePeriod === 'all') {
+                // Find the earliest date in the data
+                startDate = new Date(Math.min(
+                    ...burgers.map(b => new Date(b.date).getTime()),
+                    ...weights.map(w => new Date(w.date).getTime()),
+                    ...exercises.map(e => new Date(e.date).getTime())
+                ));
+                
+                if (startDate.getTime() === Infinity) {
+                    startDate = new Date();
+                    startDate.setDate(startDate.getDate() - 7); // Default to 7 days if no data
+                }
+            } else {
+                startDate.setDate(startDate.getDate() - parseInt(timePeriod));
+            }
+            
+            // Generate date labels
+            const dateArray = [];
+            for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                dateArray.push(new Date(d));
+            }
+            
+            labels = dateArray.map(date => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            
+            // Prepare data based on graph type
+            switch(graphType) {
+                case 'weight':
+                    label = 'Weight (lb)';
+                    backgroundColor = 'rgba(75, 192, 192, 0.2)';
+                    borderColor = 'rgba(75, 192, 192, 1)';
+                    
+                    // Sort weights by date
+                    const sortedWeights = [...weights].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    
+                    // Create a map of weight by date for easy lookup
+                    const weightMap = new Map();
+                    sortedWeights.forEach(entry => {
+                        weightMap.set(entry.date, entry.weight);
+                    });
+                    
+                    // Fill data array with weights for each date
+                    data = dateArray.map(date => {
+                        const dateStr = date.toISOString().split('T')[0];
+                        return weightMap.has(dateStr) ? weightMap.get(dateStr) : null;
+                    });
+                    break;
+                    
+                case 'calories':
+                    label = 'Calories';
+                    backgroundColor = 'rgba(255, 99, 132, 0.2)';
+                    borderColor = 'rgba(255, 99, 132, 1)';
+                    
+                    // Create a map of calories by date
+                    const calorieMap = new Map();
+                    
+                    // Sum burger calories
+                    burgers.forEach(burger => {
+                        const date = burger.date;
+                        if (!calorieMap.has(date)) {
+                            calorieMap.set(date, { consumed: 0, burned: 0 });
+                        }
+                        calorieMap.get(date).consumed += burger.calories;
+                    });
+                    
+                    // Sum exercise calories
+                    exercises.forEach(exercise => {
+                        const date = exercise.date;
+                        if (!calorieMap.has(date)) {
+                            calorieMap.set(date, { consumed: 0, burned: 0 });
+                        }
+                        calorieMap.get(date).burned += exercise.calories;
+                    });
+                    
+                    // Calculate net calories for each date
+                    data = dateArray.map(date => {
+                        const dateStr = date.toISOString().split('T')[0];
+                        if (calorieMap.has(dateStr)) {
+                            const dayCalories = calorieMap.get(dateStr);
+                            return dayCalories.consumed - dayCalories.burned;
+                        }
+                        return null;
+                    });
+                    break;
+                    
+                case 'burgers':
+                    label = 'Burgers';
+                    backgroundColor = 'rgba(255, 206, 86, 0.2)';
+                    borderColor = 'rgba(255, 206, 86, 1)';
+                    
+                    // Count burgers per day
+                    const burgerMap = new Map();
+                    burgers.forEach(burger => {
+                        const date = burger.date;
+                        burgerMap.set(date, (burgerMap.get(date) || 0) + 1);
+                    });
+                    
+                    // Fill data array with burger counts
+                    data = dateArray.map(date => {
+                        const dateStr = date.toISOString().split('T')[0];
+                        return burgerMap.has(dateStr) ? burgerMap.get(dateStr) : 0;
+                    });
+                    break;
+            }
+            
+            // Get or create chart canvas
+            const ctx = document.getElementById('data-chart').getContext('2d');
+            
+            // Destroy previous chart if it exists
+            if (dataChart) {
+                dataChart.destroy();
+            }
+            
+            // Create new chart
+            dataChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true,
+                        pointBackgroundColor: 'rgba(255, 255, 255, 1)',
+                        pointBorderColor: borderColor,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: graphType === 'burgers',
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: 'rgba(255, 255, 255, 0.9)',
+                            bodyColor: 'rgba(255, 255, 255, 0.7)',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            borderWidth: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default date for weight form
+            document.getElementById('weight-date').value = today.toISOString().split('T')[0];
+            
+            // Load data
+            updateBurgerList();
+            updateWeightHistory();
+            updateExerciseList();
+            updateStats();
+            updateWeeklySummary();
+            
+            // Graph toggle buttons
+            document.querySelectorAll('.toggle-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    updateChart();
+                });
+            });
+            
+            // Time period selector
+            document.getElementById('time-period').addEventListener('change', updateChart);
+        });
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=Wadbott123/my-qweosme-space" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+</html>
